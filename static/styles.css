@@ -61,7 +61,6 @@ body {
   font: 16px Arial;
 }
 .autocomplete {
-  /*the container must be positioned relative:*/
   width : 100%;
 }
 .autocomplete-items {

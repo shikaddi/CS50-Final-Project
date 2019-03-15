@@ -1,0 +1,30 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    table
+{% endblock %}
+
+{% block header %}
+    Hello World
+{% endblock %}
+
+{% block info %}
+  <table class='table border table-striped'>
+    <tr>
+      <th scope="col">#</th>
+      <th scope='col'>Artist Name</th>
+      <th scope="col">Album Name</th>
+      <th scope="col">Week</th>
+      <th scope="col">Sales</th>
+    </tr>
+    {% for number in numbers %}
+    <tr>
+      <th scope='col'>{{ number + 1 }}</th>
+      <th>{{ tuple['artistname'][number] }}</th>
+      <th>{{ tuple['albumname'][number] }}</th>
+      <th>{{ tuple['salesweek'][number] }}</th>
+      <th>{{ tuple['albumsales'][number] }}</th>
+    </tr>
+    {% endfor %}
+  </table>
+{% endblock %}

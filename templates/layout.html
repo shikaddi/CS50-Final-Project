@@ -1,0 +1,109 @@
+
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <title>{% block title %}{% endblock %}</title>
+        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
+        <link rel="stylesheet" type="text/css" href="../static/styles.css"/>
+        <script src="../static/script.js"></script>
+    </head>
+    <body>
+        <nav class="navbar navbar-expand-md navbar-light bg-light border" id='centered'>
+            <div class="text-primary">{% block header %}{% endblock %}</div>
+        </nav>
+        <div class="whitespace"></div>
+        <div class="container center bg-light border no-small-margin">
+          <form id='POST-thingy' class ='row center' method="POST" action="/table">
+            <div class="col-md-4 center rowmaker">
+              <div class='formController'>
+                <div class="whitespace"></div>
+                  <div>
+                    <input id="artist" autofocus autocomplete="off" class='form-control' placeholder="Artist" type="text" name="Artist">
+                    <div class="influence">
+                      <span id='autocomplete-here' class="autocomplete table table-striped"></span>
+                    </div>
+                <span class='remove-breaks'><br><div class="whitespace"></div></span>
+              </div>
+              </div>
+              <div class="formController">
+                <span class='remove-breaks2'><div class="whitespace"></div></span>
+                  <div>
+                    <input id='album' autofocus autocomplete="off" class='form-control' placeholder="Album" type="text" name="Album">
+                    <div class="influence">
+                      <span id='autocomplete-here2' class='autocomplete table table-striped'></span>
+                    </div>
+                  </div>
+                </div>
+            </div>
+            <div class="col-md-4 form-group center" id='centerdiv'>
+              <div class="whitespace" id="amountLimiter"></div>
+              <div class="center rowmaker">
+                <div class='formController row'>
+                  <select id='whichmethod' class="col-5 form-control">
+                    <option selected value="table">Table</option>
+                    <option value='barchart'>Bar Chart</option>
+                    <option value='json'>JSON</option>
+                  </select>
+                  <input class='form-control col-7' placeholder="How many to show?" type="number" name="limitAmount" id='limitAmount'</input>
+                </div>
+                <span class='remove-breaks'><br></span>
+                <div class="whitespace"></div>
+                <div class='formController row'>
+                  <select name='method' class="form-control col-5">
+                    <option value='byWeek'>Weekly sales</option>
+                    <option value='cumulative'>Cumulative sales</option>
+                    <option value="highest">Highest sales week</option>
+                  </select>
+                  <input class='form-control col-7' placeholder="Minimal Album Sales" type="number" name="albumSales" id='albumSales'</input>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-4 date center rowmaker">
+              <div class="formController">
+                <span class="date"> beginDate</span>
+                <div class='row date'>
+                  <select name='beginYear' class="form-control col-6" id='beginDateYear'>
+                    <option value='Year2015'>2015</option>
+                    <option value='Year2016'>2016</option>
+                    <option value='Year2017'>2017</option>
+                    <option value='Year2018'>2018</option>
+                    <option value='Year2019'>2019</option>
+                  </select>
+                  <select name='beginWeek' class="form-control col-6" id='beginDateWeek'>
+                    <option value='Week  1'>Week 1</option>
+                  </select>
+                </div>
+              </div>
+              <div class="formController">
+                <span class='remove-breaks'><br></span>
+                  <span class='date'> endDate </span>
+                  <div class='row date'>
+                    <select name='endYear' class="form-control col-6" id='endDateYear'>
+                      <option value='Year2015'>2015</option>
+                      <option value='Year2016'>2016</option>
+                      <option value='Year2017'>2017</option>
+                      <option value='Year2018'>2018</option>
+                      <option value='Year2019' selected>2019</option>
+                    </select>
+                    <select name='endWeek' class="form-control col-6" id='endDateWeek'>
+                      <option value='Week  1'>Week 1</option>
+                    </select>
+                </div>
+              </div>
+            </div>
+            <input id="submit" class="btn btn-primary" type="submit" value="Submit">
+          </form>
+        </div>
+        <div>
+          <div class="whitespace"></div>
+        </div>
+          {% if numbers is defined %}
+            <div class='container border bg-light center'>
+              {% block info %}{% endblock %}
+            </div>
+          {% endif %}
+          <div>
+            <div class="whitespace"></div>
+          </div>
+    </body>
+</html>

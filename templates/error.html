@@ -1,0 +1,19 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Error
+{% endblock %}
+
+{% block header %}
+    Hello World
+{% endblock %}
+
+{% block info %}
+  <div class="alert alert-danger">
+    Just like our government, this didn't work very well.
+  </div>
+  <img id='image' src='static/machine.jpg' alt="Chart" >
+  <div class="alert alert-danger">
+    {{ errormessage }}
+  </div>
+{% endblock %}

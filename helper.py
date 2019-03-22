@@ -9,10 +9,8 @@ import os
 import pandas as pd
 import matplotlib.pyplot as plt
 
-engine = create_engine('SQL_Database', echo=True)
+engine = create_engine('sqlite:////home/Kristalin/CS50-Final-Project/myDatabase.db', echo=False)
 database = scoped_session(sessionmaker(bind=engine))
-database.execute('CREATE TABLE IF NOT EXISTS ALBUMS (AlbumId VARCHAR UNIQUE PRIMARY KEY, ArtistName VARCHAR NOT NULL, AlbumName VARCHAR NOT NULL);')
-database.commit()
 
 class Data():
 
@@ -20,12 +18,12 @@ class Data():
         if queries['Album'] == "" and queries['Artist'] == "":
             extra = ""
         elif queries['Album'] != "" and queries['Artist'] == "":
-            extra = " AND AlbumName = %(album)s"
+            extra = " AND AlbumName = :album"
         elif queries['Album'] == "" and queries['Artist'] != "":
-            extra = " AND ArtistName = %(artist)s"
+            extra = " AND ArtistName = :artist"
         else:
             Data.albumCheck(queries['Album'], queries['Artist'])
-            extra = " AND AlbumName = %(album)s AND ArtistName = %(artist)s"
+            extra = " AND AlbumName = :album AND ArtistName = :artist"
         try:
             queries["limitAmount"] = int(queries["limitAmount"])
         except:
@@ -52,34 +50,37 @@ class Data():
     def getAllSales(queries, timeTuple, extra):
         begin = getSunday(timeTuple[0], timeTuple[1])
         end = getSunday(timeTuple[2], timeTuple[3])
-        frame = pd.read_sql_query(f'Select * from AllAlbums WHERE SalesWeek >= %(begin)s AND SalesWeek <= %(end)s AND albumSales >= %(sales)s{extra} order by albumSales desc LIMIT %(limit)s;',
+        frame = pd.read_sql_query(f'Select * from AllAlbums WHERE SalesWeek >= :begin AND SalesWeek <= :end AND albumSales >= :sales{extra} order by albumSales desc LIMIT :limit;',
                                                         con=engine, params={'album': queries['Album'], 'artist' : queries['Artist'], 'begin' : begin, 'end' : end, 'sales': queries['albumSales'], 'limit': queries['limitAmount']})
         if len(frame) == 0:
             raise Exception('''No albums found, either this artist doesn't exist, this album doesn't exist or the chosen artist doesn't have the chosen album''')
-        return frame
+        plotText = "Albums sold in one week"
+        return (frame, plotText)
 
     def getCumulativeSales(queries, timeTuple, extra):
         begin = getSunday(timeTuple[0], timeTuple[1])
         end = getSunday(timeTuple[2], timeTuple[3])
-        frame = pd.read_sql_query(f'Select artistName, albumName, SUM(AlbumSales) from AllAlbums WHERE SalesWeek >= %(begin)s AND SalesWeek <= %(end)s{extra} GROUP BY artistname,albumName order by sum(albumSales) desc LIMIT %(limit)s;',
+        frame = pd.read_sql_query(f'Select artistName, albumName, SUM(AlbumSales) from AllAlbums WHERE SalesWeek >= :begin AND SalesWeek <= :end{extra} GROUP BY artistname,albumName order by sum(albumSales) desc LIMIT :limit;',
                                                         con=engine, params={'album': queries['Album'], 'artist' : queries['Artist'], 'begin' : begin, 'end' : end, 'limit': queries['limitAmount']})
-        frame['salesweek'] = 'Total Sales'
-        frame.rename(inplace=True, columns={'sum':'albumsales'})
-        minimum = frame['albumsales'] >= queries["albumSales"]
+        frame['SalesWeek'] = 'Total Sales'
+        frame.rename(inplace=True, columns={'SUM(AlbumSales)':'AlbumSales'})
+        minimum = frame['AlbumSales'] >= int(queries["albumSales"])
         if len(frame) == 0:
             raise Exception('''No albums found, either this artist doesn't exist, this album doesn't exist or the chosen artist doesn't have the chosen album''')
-        return frame[minimum]
+        plotText = f"Total Albums sold between {begin} & {end}"
+        return (frame[minimum], plotText)
 
     def getHighestSales(queries, timeTuple, extra):
         begin = getSunday(timeTuple[0], timeTuple[1])
         end = getSunday(timeTuple[2], timeTuple[3])
-        frame = pd.read_sql_query(f'''select * from AllAlbums WHERE (artistname, albumname, albumsales) in (Select artistName, albumName, MAX(AlbumSales) from AllAlbums
-                                        WHERE SalesWeek >= %(begin)s AND SalesWeek <= %(end)s AND albumSales >= %(sales)s{extra} GROUP BY artistname,albumName ) order by albumSales desc LIMIT %(limit)s;''',
-                                        con=engine, params={'album': queries['Album'], 'artist' : queries['Artist'], 'begin' : begin, 'end' : end, 'sales': queries['albumSales'], 'limit': queries['limitAmount']})
-        frame.rename(inplace=True, columns={'max':'albumsales'})
+        frame = pd.read_sql_query(f'''select * from AllAlbums a INNER JOIN(Select ArtistName as artist, AlbumName as album, MAX(AlbumSales) as Sales from AllAlbums
+                                    WHERE SalesWeek >= :begin AND SalesWeek <= :end AND albumSales >= :sales{extra} GROUP BY artistname,albumName) b on a.ArtistName = b.artist AND a.AlbumName = B.album AND a.AlbumSales= b.sales order by AlbumSales desc LIMIT :limit;''',
+                                    con=engine, params={'album': queries['Album'], 'artist' : queries['Artist'], 'begin' : begin, 'end' : end, 'sales': queries['albumSales'], 'limit': queries['limitAmount']})
+        frame.rename(inplace=True, columns={'MAX(AlbumSales)':'AlbumSales'})
         if len(frame) == 0:
             raise Exception('''No albums found, either this artist doesn't exist, this album doesn't exist or the chosen artist doesn't have the chosen album''')
-        return frame
+        plotText = "highest sales week for these albums"
+        return (frame, plotText)
 
     def howManyToShow(limit, length):
         if limit == "":
@@ -137,30 +138,30 @@ class barPreparation():
 
     def mergeAlbumAndArtist(info):
         artistAndAlbum = []
-        for artist, album in zip(info['artistname'], info['albumname']):
+        for artist, album in zip(info['ArtistName'], info['AlbumName']):
             artistAndAlbum.append(f'{artist} | {album}')
         return artistAndAlbum
 
-    def createPlot(info, size, width):
+    def createPlot(info, size, width, plotText):
         plt.clf()
-        albumsSoldAxis = info['albumsales'].iloc[::-1].plot(kind='barh', figsize=(10,size + 2), fontsize=12, color=info['colors'].iloc[::-1], edgecolor = 'black', tick_label=info['merger'].iloc[::-1])
+        albumsSoldAxis = info['AlbumSales'].iloc[::-1].plot(kind='barh', figsize=(10,size + 2), fontsize=12, color=info['colors'].iloc[::-1], edgecolor = 'black', tick_label=info['merger'].iloc[::-1])
         albumsSoldAxis.set_title("Artists who sell a lot", fontsize=18)
-        albumsSoldAxis.set_xlabel("Albums sold in one week", fontsize=18)
+        albumsSoldAxis.set_xlabel(plotText, fontsize=18, x=0)
         albumsSoldAxis.set_xticks(range(0,width,width // 8))
         ylabel = []
         for patch, artistAndAlbum, number in zip(albumsSoldAxis.patches, info['merger'].iloc[::-1], range(len(info['merger']),0,-1)):
             x, y = patch.get_width(), patch.get_y()
-            albumsSoldAxis.text(x + 10000, y, format(x,',d'))
+            albumsSoldAxis.text(x + 10000 if number != 1 else x - width // 8, y, format(x,',d'))
             ylabel.append(f'{artistAndAlbum} - {number}')
         albumsSoldAxis.set_yticks(range(len(ylabel)))
         albumsSoldAxis.set_yticklabels(ylabel)
         plt.setp(albumsSoldAxis.get_xticklabels(), fontsize=10)
         figure = albumsSoldAxis.get_figure()
         figure.tight_layout()
-        if os.path.exists("static/test.jpg"):
-            os.remove("static/test.jpg")
-        figure.savefig(f'static/test.jpg')
-        return f'static/test.jpg'
+        if os.path.exists("/home/Kristalin/CS50-Final-Project/static/test.jpg"):
+            os.remove("/home/Kristalin/CS50-Final-Project/static/test.jpg")
+        figure.savefig('/home/Kristalin/CS50-Final-Project/static/test.jpg')
+        return '/home/Kristalin/CS50-Final-Project/static/test.jpg'
 
 def getSunday(_weekNo, _Year):
     janOne = strptime('%s-01-01' % _Year, '%Y-%m-%d')

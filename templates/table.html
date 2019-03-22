@@ -20,10 +20,10 @@
     {% for number in numbers %}
     <tr>
       <th scope='col'>{{ number + 1 }}</th>
-      <th>{{ tuple['artistname'][number] }}</th>
-      <th>{{ tuple['albumname'][number] }}</th>
-      <th>{{ tuple['salesweek'][number] }}</th>
-      <th>{{ tuple['albumsales'][number] }}</th>
+      <th>{{ tuple['ArtistName'][number] }}</th>
+      <th>{{ tuple['AlbumName'][number] }}</th>
+      <th>{{ tuple['SalesWeek'][number] }}</th>
+      <th>{{ tuple['AlbumSales'][number] }}</th>
     </tr>
     {% endfor %}
   </table>

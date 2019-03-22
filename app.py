@@ -1,12 +1,13 @@
 import pickle
 from flask import Flask, render_template, jsonify, request
 from helper import Data, barPreparation, database
+import datetime
 
 def main():
     database.execute('CREATE TABLE IF NOT EXISTS AllAlbums (ArtistName VARCHAR NOT NULL, AlbumName VARCHAR NOT NULL, SalesWeek INT NOT NULL, AlbumSales INT NOT NULL , PRIMARY KEY (ArtistName, AlbumName, SalesWeek));')
-    database.execute('DELETE FROM AllAlbums;')
+    #database.execute('DELETE FROM AllAlbums;')
     database.commit()
-    dictOfArtist = pickle.load(open('newerDicts.p', "rb"))
+    dictOfArtist = pickle.load(open('./newerDicts.p', "rb"))
     id = 0
 
     for name, music in dictOfArtist.items():
@@ -26,6 +27,9 @@ def main():
                         if name != "Various Artists" or albumName != 'Soundtrack':
                             database.execute('INSERT INTO AllAlbums (ArtistName,AlbumName,SalesWeek,AlbumSales) VALUES (:artist, :album, :week, :sales);',
                                                                 { 'artist' : name, 'album': albumName, 'week' : week, 'sales' : int(sales.replace(",",""))})
+
+
+                            database.commit()
     database.execute("INSERT INTO AllAlbums (ArtistName,AlbumName,SalesWeek,AlbumSales) VALUES ('Taylor Swift', 'Reputation', 20171126, 256000);")
     database.execute("INSERT INTO AllAlbums (ArtistName,AlbumName,SalesWeek,AlbumSales) VALUES ('Tim McGraw & Faith Hill', 'Rest Of Our Life', 20171126 , 104000);")
     database.execute("INSERT INTO AllAlbums (ArtistName,AlbumName,SalesWeek,AlbumSales) VALUES ('Sam Smith', 'Thrill Of It All', 20171126, 58000);")
@@ -46,7 +50,9 @@ app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 5
 
 @app.route("/")
 def index():
-    return render_template("index.html")
+    now = datetime.datetime.now()
+    thisWeek = (datetime.date(now.year, now.month, now.day).isocalendar()[1]) - 1
+    return render_template("index.html", latestWeekAvailable= thisWeek)
 
 @app.route("/artistchecker/<string:artist>")
 def artistChecker(artist):
@@ -57,7 +63,6 @@ def artistChecker(artist):
     listOfPossibleArtist = []
     for possibleArtist in sqlListOfPossibleArtist:
         listOfPossibleArtist.append(possibleArtist[0])
-    database.close()
     return jsonify(listOfPossibleArtist)
 
 @app.route("/albumchecker/<string:queries>")
@@ -71,11 +76,12 @@ def albumChecker(queries):
     listOfPossibleAlbums = []
     for possibleAlbum in sqlListOfPossibleAlbums:
         listOfPossibleAlbums.append(possibleAlbum[0])
-    database.close()
     return jsonify(listOfPossibleAlbums)
 
 @app.route("/table", methods=['GET','POST'])
 def table():
+    now = datetime.datetime.now()
+    thisWeek = datetime.date(now.year, now.month, now.day).isocalendar()[1] - 1
     if request.method == "POST":
         try:
             queries = {}
@@ -84,15 +90,17 @@ def table():
                 queries[query] = request.form.get(query).title()
             if queries['limitAmount'] == "":
                 queries["limitAmount"] = 250
-            frame = Data.gatherInfo(queries)
-            numbers = Data.howManyToShow(queries['limitAmount'], len(frame['artistname']))
-            return render_template('table.html', tuple = frame, numbers = numbers)
+            frame, junk = Data.gatherInfo(queries)
+            numbers = Data.howManyToShow(queries['limitAmount'], len(frame['ArtistName']))
+            return render_template('table.html', tuple = frame, numbers = numbers, latestWeekAvailable= thisWeek)
         except Exception as error:
-            return render_template('error.html', errormessage = error, numbers = 0)
-    return render_template('index.html')
+            return render_template('error.html', errormessage = error, numbers = 0, latestWeekAvailable= thisWeek)
+    return render_template('index.html', latestWeekAvailable= thisWeek)
 
 @app.route("/barchart", methods=["GET","POST"])
 def barchart():
+    now = datetime.datetime.now()
+    thisWeek = datetime.date(now.year, now.month, now.day).isocalendar()[1] - 1
     if request.method == "POST":
         try:
             queries = {}
@@ -101,20 +109,20 @@ def barchart():
                 queries[query] = request.form.get(query).strip().title()
             if queries['limitAmount'] == "":
                 queries["limitAmount"] = 100
-            frame = Data.gatherInfo(queries)
+            frame, plotText = Data.gatherInfo(queries)
             if not queries['Artist'] == "":
-                frame['bools'] = barPreparation.coloringList(frame['albumname'])
-                frame['colors'] = barPreparation.addColorToFrame(frame, 'albumname')
+                frame['bools'] = barPreparation.coloringList(frame['AlbumName'])
+                frame['colors'] = barPreparation.addColorToFrame(frame, 'AlbumName')
             else:
-                frame['bools'] = barPreparation.coloringList(frame['artistname'])
-                frame['colors'] = barPreparation.addColorToFrame(frame, 'artistname')
+                frame['bools'] = barPreparation.coloringList(frame['ArtistName'])
+                frame['colors'] = barPreparation.addColorToFrame(frame, 'ArtistName')
             frame['merger'] = barPreparation.mergeAlbumAndArtist(frame)
-            width = int(frame['albumsales'][0].item())
-            url = barPreparation.createPlot(frame, len(frame['artistname'])/3, width)
-            return render_template('barchart.html', numbers = 0)
+            width = int(frame['AlbumSales'][0].item())
+            url = barPreparation.createPlot(frame, len(frame['ArtistName'])/3, width, plotText)
+            return render_template('barchart.html', numbers = 0, latestWeekAvailable= thisWeek)
         except Exception as error:
-            return render_template('error.html', errormessage = error, numbers = 0)
-    return render_template('index.html')
+            return render_template('error.html', errormessage = error, numbers = 0, latestWeekAvailable= thisWeek)
+    return render_template('index.html', latestWeekAvailable= thisWeek)
 
 @app.route('/json', methods=['get','post'])
 def json():
@@ -126,7 +134,7 @@ def json():
                 queries[query] = request.form.get(query).title()
             if queries['limitAmount'] == "":
                 queries["limitAmount"] = 25000
-            frame = Data.gatherInfo(queries)
+            frame, junk = Data.gatherInfo(queries)
             return frame.transpose().to_json()
         except Exception as error:
             return render_template('error.html', errormessage = error, numbers = 0)

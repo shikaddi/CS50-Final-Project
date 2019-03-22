@@ -54,7 +54,7 @@ function main(){
   let beginWeek = $('#beginDateWeek'), beginYear = $('#beginDateYear'), endWeek = $('#endDateWeek'), endYear = $('#endDateYear');
 
   // fill array with available weeks(1 - 52) and years (2015 - 2019)
-  let weeks = [], years = [], earliestWeekAvailable = 5, latestWeekAvailable = 10;
+  let weeks = [], years = [], earliestWeekAvailable = 5, latestWeekAvailable = parseInt(endWeek.dataset.enddate);
 
   (function (){
     for (let i = 0; i < 52; i++) {
@@ -118,7 +118,7 @@ function main(){
         }
       })
       console.log(oldWeekForBegin, oldWeekForEnd);
-      setTimeout( () => {endWeek[oldWeekForEnd - 1].selected = true;}, 30);
+      setTimeout( () => {endWeek[oldWeekForEnd].selected = true;}, 30);
     }
   };
 

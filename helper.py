@@ -9,7 +9,7 @@ import os
 import pandas as pd
 import matplotlib.pyplot as plt
 
-engine = create_engine('sqlite:////home/Kristalin/CS50-Final-Project/myDatabase.db', echo=False)
+engine = create_engine('sqlite:////myDatabase.db', echo=False)
 database = scoped_session(sessionmaker(bind=engine))
 
 class Data():
